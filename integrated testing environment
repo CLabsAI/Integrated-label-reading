@@ -9,6 +9,7 @@ import os
 import pickle
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from datetime import datetime
 
 # Your Vision API key
 vision_api_key = 'AIzaSyDRB4CbKeF9ORqFpjHuPAHyY-S-O-UpVxc'
@@ -90,7 +91,12 @@ def send_to_vision_and_sheets(image):
 
     sheets_service = build('sheets', 'v4', credentials=creds)
     sheet = sheets_service.spreadsheets()
-    values = [[extracted_text]]
+
+    # Get the current timestamp
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Send both the extracted text and the timestamp to Google Sheets
+    values = [[extracted_text], [timestamp]]
     body = {'values': values}
     result = sheet.values().append(
         spreadsheetId=SPREADSHEET_ID,
