@@ -23,15 +23,36 @@ RANGE_NAME = 'IN'
 # Build the Vision API client
 vision_service = build('vision', 'v1', developerKey=vision_api_key)
 
+def increase_brightness(img, value=30):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    lim = 255 - value
+    v[v > lim] = 255
+    v[v <= lim] += value
+
+    final_hsv = cv2.merge((h, s, v))
+    bright_img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return bright_img
+
 def preprocess_image(image):
+    # Convert the image to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    equ = cv2.equalizeHist(gray)
-    gamma = 1.0
-    inv_gamma = 1.0 / gamma
-    table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
-    gamma_corrected = cv2.LUT(equ, table)
-    thresh = cv2.adaptiveThreshold(gamma_corrected, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    return thresh
+    
+    # Apply Gaussian blur with a different kernel size
+    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+    
+    # Adjusting the CLAHE parameters
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    enhanced_contrast = clahe.apply(blurred)
+    
+    # Tweaking the adaptive thresholding parameters
+    binary_image = cv2.adaptiveThreshold(enhanced_contrast, 255, 
+                                         cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                         cv2.THRESH_BINARY, 15, 4)
+    
+    return binary_image
+
 
 def send_to_vision(image):
     _, buffer = cv2.imencode('.png', image)
