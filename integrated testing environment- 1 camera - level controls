@@ -126,7 +126,8 @@ def capture_image_from_camera(brightness_factor=1.0):
     cv2.destroyAllWindows()
 
     # Display the captured image immediately
-    display_single_image(captured_frame)
+    gray_img = cv2.cvtColor(captured_frame, cv2.COLOR_BGR2GRAY)
+    display_image(captured_frame, gray_img)
 
 def display_image(original_image, preprocessed_image, annotations=None):
     window = tk.Toplevel(root)
