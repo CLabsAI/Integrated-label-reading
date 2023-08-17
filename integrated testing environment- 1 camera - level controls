@@ -114,12 +114,19 @@ def capture_image_from_camera(brightness_factor=1.0):
     cap.release()
     cv2.destroyAllWindows()
 
+    # Display the captured image immediately
+    display_single_image(captured_frame)
+
 def display_image(original_image, preprocessed_image, annotations=None):
     window = tk.Toplevel(root)
     
+    # Convert grayscale back to 3-channel image
     preprocessed_image = cv2.cvtColor(preprocessed_image, cv2.COLOR_GRAY2BGR)
+    
+    # Resize preprocessed image to match the original image dimensions
     preprocessed_image = cv2.resize(preprocessed_image, (original_image.shape[1], original_image.shape[0]))
     
+    # Stack images horizontally for side-by-side display
     combined_image = cv2.hconcat([original_image, preprocessed_image])
     
     height, width, _ = combined_image.shape
@@ -133,37 +140,27 @@ def display_image(original_image, preprocessed_image, annotations=None):
     if annotations:
         for annotation in annotations['responses'][0]['textAnnotations'][1:]:
             vertices = annotation['boundingPoly']['vertices']
-            pts = [(vertex.get('x', 0), vertex.get('y', 0)) for vertex in vertices]
+            
+            # Draw boxes on the original image (left side)
+            pts_original = [(vertex.get('x', 0), vertex.get('y', 0)) for vertex in vertices]
+            # Draw boxes on the preprocessed image (right side) using adjusted x-coordinates
+            pts_preprocessed = [(vertex.get('x', 0) + original_image.shape[1], vertex.get('y', 0)) for vertex in vertices]
+            
             for i in range(4):
-                canvas.create_line(pts[i][0], pts[i][1], pts[(i+1)%4][0], pts[(i+1)%4][1], fill='green')
+                # Original
+                canvas.create_line(pts_original[i][0], pts_original[i][1], pts_original[(i+1)%4][0], pts_original[(i+1)%4][1], fill='green', width=3)
+                # Preprocessed
+                canvas.create_line(pts_preprocessed[i][0], pts_preprocessed[i][1], pts_preprocessed[(i+1)%4][0], pts_preprocessed[(i+1)%4][1], fill='green', width=3)
     
     window.mainloop()
 
-def on_proceed_click():
-    global captured_frame
-    if captured_frame is not None:
-        print("Processing captured frame for OCR...")
-        preprocessed_frame = preprocess_image(captured_frame)
-        extracted_text, annotations = send_to_vision(preprocessed_frame)
-        
-        if extracted_text:
-            main_text = annotations['responses'][0]['textAnnotations'][0]['description']
-            print(f"Extracted text: {main_text}")
-            
-            send_to_google_sheets(extracted_text)
-            if "DOT" in extracted_text:
-                print("DOT found in the extracted text!")
-            
-            display_image(captured_frame, preprocessed_frame, annotations)
-        else:
-            print("No text extracted.")
-    else:
-        print("No captured frame found.")
+# ... [rest of your functions without changes] ...
 
 # Main GUI window
 root = tk.Tk()
 root.title("Camera OCR Application")
 
+# Add elements to the main GUI
 camera_duration_label = tk.Label(root, text="Camera Duration (seconds)")
 camera_duration_label.pack()
 camera_duration = Scale(root, from_=1, to=5, orient=tk.HORIZONTAL)
